@@ -1,0 +1,143 @@
+---
+title: "DSI_Data_Challenge"
+author: "Dingxin Lu"
+date: "9/29/2021"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 1
+    toc_float: yes
+---
+
+```{r, include=FALSE}
+options(tinytex.verbose = TRUE)
+```
+
+```{r,echo=FALSE}
+knitr::opts_chunk$set(cache=TRUE, error=FALSE, message=FALSE, warning=FALSE, tidy.opts=list(width.cutoff=60),tidy=TRUE)
+```
+
+# Setup
+```{r message=FALSE}
+## load in the required libraries 
+library(readr)
+library(tidyverse)
+library(here)
+library(RColorBrewer)
+
+## read in the data using here() function
+state_milk_production <- read_csv(here("data/state_milk_production.csv"))
+clean_cheese <- read_csv(here("data/clean_cheese.csv"))
+fluid_milk_sales <- read_csv(here("data/fluid_milk_sales.csv"))
+milk_products_facts <- read_csv(here("data/milk_products_facts.csv"))
+milkcow_facts <- read_csv(here("data/milkcow_facts.csv"))
+
+## disable scientific notation
+options(scipen = 999)
+```
+# Figure 1
+```{r q1_ans}
+## initiate ggplot for plotting graphs
+## geom_point() is used to create scatter plots
+## x,y axes and main title will be labeled with labs()
+ggplot(milkcow_facts, aes(x = avg_milk_cow_number / 1000000, 
+                          y = milk_production_lbs / 1000000)) +
+  geom_point(aes(col = year)) +
+  labs(x = 'Average number of milk cows \n(in millions)',
+       y = 'Milk production \n(in millions of pounds)',
+       title = 'Milk production versus average number of milk cows by year') +
+  guides(color = guide_legend(title ='Year')) ## label and color the legend
+```
+
+Figure 1. This plot shows the milk production against average number of milk cows from the year 1980 to 2010. We can see in 1980, the average number of milk cows is around 11 millions, and that can produce 130 billion pounds of milk. Compared to in 2010, the average number of milk cow is only around 9 million but can produce around 210 billion pounds of milk. This makes sense as technology and skills improve over time, so we are able to produce more milk with less cows. In conclusion, from the year 1980 to 2010, the average number of milk cows decreases but the amount of milk produced increases massively.
+
+# Figure 2
+```{r q2_ans}
+## group region and milk as they are of our interest
+## calculate the total amount of milk produced by using sum()
+state_milk_production %>%
+  group_by(region, year) %>% 
+  summarise(total_milk_produced = sum(milk_produced)) %>%
+  
+## initiate ggplot for plotting graphs
+## geom_line() connects points in order of the variable on the x axis to create a line plot
+## x,y axes and main title will be labeled with labs()
+  ggplot(aes(x = year, 
+           y = total_milk_produced / 1000000)) +
+  geom_line(aes(color = region)) + ## plot the line plot using different colors to differentiate the region
+  facet_wrap( ~ region) + ## split a single plot into many related plots based on different regions
+  labs(x ='Year',
+       y ='Total amount of milk produced \n(in millions of pounds)',
+       title ='Total milk production versus the year faceted by region') +
+  theme(legend.position = "none") ## get rid of legend for this plot
+```
+
+Figure 2. This plot shows the total amount of milk being produced in different regions over time. Lake states has been producing the most milk until Pacific catches up in milk production in the year of 2010. Regions like Mountain and Pacific have both experienced rapid increase in milk production from the year 1970 to the year 2020. Whereas regions like Appalachian, Delta States, Northern Plains and Southeast have not increased in production in the same time span and produce relatively much lower quantity of milk compared to other regions.
+
+# Figure 3
+```{r q3_ans}
+fluid_milk_sales %>%
+  filter(milk_type != 'Total Production') %>% # get ride of rows that are named 'Total Production'
+## initiate ggplot for plotting graphs
+## geom_line() connects points in order of the variable on the x axis to create a line plot
+## x,y axes and main title will be labeled with labs()
+ggplot(aes(x = year, 
+           y = pounds)) +
+  geom_line(aes(color = milk_type)) +
+  labs(x ='Year',
+       y ='Amount of milk products sold \n(in pounds)',
+       title ='Amount of each milk product sold over time') +
+  scale_y_continuous(trans ='log10') +  # scale_y_continuous() to change the y-axis limits; trans= for axis transformations. Here I used 'log10'
+  guides(color = guide_legend(title ='Milk type')) #label and color the legend
+```
+
+Figure 3. This plot shows the amount of milk products sold from 1970 to 2020. There are milk like flavored (not white) milk, eggnog milk, low fat (1%) milk and reduced fat (1%) milk which have shown a steady increase in sales over time. In contrary, there are milk like whole milk, buttermilk, flavoured whole milk which have a steady decline in sales over time. It can indictate the phenomenon that maybe there is a shift towards more "healthy" and "less fat" milk preference among the general public, so people are more willing to buy low fat and healthy milk. One interesting case to look at in this plot is skim milk, it had a steady increase until it experienced a rapid decrease in sales after the year 2010. 
+
+# Figure 4
+```{r q4_ans}
+clean_cheese_updated <- clean_cheese %>%
+  select(0:13) %>% ## remove all the total cheese variables we do not want.
+  pivot_longer(!Year, names_to = "cheese_type", values_to = "consumption") ## pivot_longer() "lengthens" data by increasing the number of rows and decreasing the number of columns
+
+clean_cheese_updated$cheese_type <- toupper(clean_cheese_updated$cheese_type) ## capitalize all the names of cheese type
+
+colourCount = length(unique(clean_cheese_updated$cheese_type)) ## count how many cheese types there are
+getPalette = colorRampPalette(brewer.pal(n = 9, "Set3")) ## This is for using RColorBrewer; this will generate 100 colors based on the 9 from the ‘Set3’ palette
+
+## initiate ggplot for plotting graphs
+## using geom_bar() to create a bar plot
+## x,y axes and main title will be labeled with labs()
+ggplot(clean_cheese_updated, 
+       aes(x = Year, 
+           y = consumption,
+           fill = cheese_type)) +
+  geom_bar(position = "stack", 
+           stat = "identity") + ## plot a stacked bar plot so position = 'stack'
+  labs(x ='Year',
+       y ='Consumption',
+       title ='Different types of cheese consumed over time') +
+  scale_fill_manual(values = getPalette(colourCount), 
+                    name = 'Cheese Type') ## this allows R to specify the set of mappings from levels in the data to aesthetic values
+```
+
+Figure 4. The plot shows the consumption of different cheese over time, we can see cheddar and mozzarella have the largest increase in consumption, it can show its growth in population with consumers from the year 1970 to 2020. Whereas cheeses like cream and neufchatel, foods and spreads, italian cheese do not increase in consumption in the same time span. And there are cheese like processed cheese which has a decrease in consumption over time.
+
+# Figure 5
+```{r q5_ans}
+new_data <-left_join(fluid_milk_sales, milkcow_facts, by = c('year'='year')) ## join two data.tables together
+## character vector of variables to join by is 'year' in both data tables.
+
+## initiate ggplot for plotting graphs
+## geom_line() connects points in order of the variable on the x axis to create a line plot
+## x,y axes and main title will be labeled with labs()
+ggplot(new_data, aes(x = avg_price_milk, 
+                     y = pounds / 1000000)) + ## supply a dataset and aesthetic mapping by x and y.
+  geom_line(aes(color = milk_type)) + ## plot the line graph by connecting observations, colored by different milk type.
+  labs(x ='Average milk price',
+       y ='Milk sales \n(in millions of pounds)',
+       title ='Milk sales versus average milk price based on the type of milk') +
+  scale_y_continuous(trans ='log10') +
+  guides(color = guide_legend(title ='Milk Type')) ## legend will be set and renamed guide_legend()
+```
+
+Figure 5. We can see from the graph, if we plot milk sales against average milk price, we can see almost all the milk types fluctuate when average milk price increases from 0.12 to 0.165, then milk sales remain stable even when average milk price increases after price = 0.165. However, even there is fluctuation of milk sales when average milk price is low, overall, milk sales of each milk type does not change much when average milk price increases. In conclusion, milk sales for each milk type is irrelevant to change in average milk price. 
