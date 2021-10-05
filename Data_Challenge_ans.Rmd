@@ -8,6 +8,7 @@ output:
     toc_depth: 1
     toc_float: yes
 ---
+[my github link] https://github.com/sydneydlu98/DSI_Data_Challenge_1
 
 ```{r, include=FALSE}
 options(tinytex.verbose = TRUE)
@@ -35,6 +36,7 @@ milkcow_facts <- read_csv(here("data/milkcow_facts.csv"))
 ## disable scientific notation
 options(scipen = 999)
 ```
+
 # Figure 1
 ```{r q1_ans}
 ## initiate ggplot for plotting graphs
